@@ -37,29 +37,50 @@
 
             // Jalankan fungsi setelah gambar dimuat
             img.onload = function () {
-                // Ubah ukuran gambar menjadi h200
-                var lebar = img.width;
-                var tinggi = img.height;
-                var faktorSkala = 200 / tinggi;
-                lebar *= faktorSkala;
-                tinggi = 200;
-
                 // Buat elemen canvas untuk hasil deteksi tepi
                 var canvasTepi = document.createElement('canvas');
-                canvasTepi.width = lebar;
-                canvasTepi.height = tinggi;
+                canvasTepi.width = img.width;
+                canvasTepi.height = img.height;
                 var ctxTepi = canvasTepi.getContext('2d');
 
                 // Gambar gambar input ke canvas
-                ctxTepi.drawImage(img, 0, 0, lebar, tinggi);
+                ctxTepi.drawImage(img, 0, 0, img.width, img.height);
+
+                // Salin gambar input ke dalam elemen canvas baru
+                var canvasInput = document.createElement('canvas');
+                canvasInput.width = img.width;
+                canvasInput.height = img.height;
+                var ctxInput = canvasInput.getContext('2d');
+                ctxInput.drawImage(img, 0, 0, img.width, img.height);
+
+                // Tentukan nilai ambang untuk gradien (sesuaikan jika diperlukan)
+                var threshold = 100;
 
                 // Loop melalui setiap piksel
-                for (var x = 1; x < lebar - 1; x++) {
-                    for (var y = 1; y < tinggi - 1; y++) {
-                        // ... (kode deteksi tepi sama seperti sebelumnya)
+                for (var x = 1; x < img.width - 1; x++) {
+                    for (var y = 1; y < img.height - 1; y++) {
+                        // Dapatkan nilai intensitas piksel di sekitar piksel
+                        var pixelKiri = ctxInput.getImageData(x - 1, y, 1, 1).data;
+                        var pixelTengah = ctxInput.getImageData(x, y, 1, 1).data;
+                        var pixelKanan = ctxInput.getImageData(x + 1, y, 1, 1).data;
+
+                        // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
+                        var gradienMerah = pixelKiri[0] + pixelKanan[0] - 2 * pixelTengah[0];
+                        var gradienHijau = pixelKiri[1] + pixelKanan[1] - 2 * pixelTengah[1];
+                        var gradienBiru = pixelKiri[2] + pixelKanan[2] - 2 * pixelTengah[2];
+
+                        // Menghitung gradien akhir
+                        var gradien = Math.sqrt(gradienMerah**2 + gradienHijau**2 + gradienBiru**2);
+
+                        // Memastikan gradien berada dalam rentang yang valid
+                        gradien = Math.min(255, gradien);
+
+                        // Mengurangi nilai gradien untuk menghasilkan gambar yang lebih gelap
+                        gradien = 255 - gradien;
 
                         // Atur warna piksel ke canvas deteksi tepi
-                        ctxTepi.fillStyle = 'rgb(' + gradien + ',' + gradien + ',' + gradien + ')';
+                        var warna = gradien > threshold ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
+                        ctxTepi.fillStyle = warna;
                         ctxTepi.fillRect(x, y, 1, 1);
                     }
                 }
