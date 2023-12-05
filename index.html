@@ -46,6 +46,9 @@
                 // Memastikan gradien berada dalam rentang yang valid
                 gradien = Math.min(255, gradien);
 
+                // Mengurangi nilai gradien untuk menghasilkan gambar yang lebih gelap
+                gradien = 255 - gradien;
+
                 // Atur warna piksel ke canvas deteksi tepi
                 ctxTepi.fillStyle = 'rgb(' + gradien + ',' + gradien + ',' + gradien + ')';
                 ctxTepi.fillRect(x, y, 1, 1);
