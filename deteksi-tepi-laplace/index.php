@@ -1,52 +1,76 @@
 <?php
-// Membaca gambar
-$gambar = imagecreatefromjpeg('input.jpg');
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_FILES["input_image"])) {
+    // Mengambil informasi tentang file gambar yang diunggah
+    $file_name = $_FILES["input_image"]["name"];
+    $file_tmp = $_FILES["input_image"]["tmp_name"];
 
-// Mendapatkan ukuran gambar
-$lebar = imagesx($gambar);
-$tinggi = imagesy($gambar);
+    // Tentukan folder tempat Anda ingin menyimpan gambar
+    $upload_folder = "images/";
 
-// Membuat gambar baru untuk hasil deteksi tepi
-$gambarTepi = imagecreatetruecolor($lebar, $tinggi);
+    // Pindahkan file gambar dari folder tempat sementara ke folder tujuan
+    $destination = $upload_folder . $file_name;
+    if (move_uploaded_file($file_tmp, $destination)) {
+        // Membaca gambar dari file yang diunggah
+        $gambar = imagecreatefromjpeg($destination);
 
-// Loop melalui setiap piksel
-for ($x = 1; $x < $lebar - 1; $x++) {
-    for ($y = 1; $y < $tinggi - 1; $y++) {
-        // Mendapatkan nilai intensitas piksel di sekitar piksel
-        $pixelKiri = imagecolorat($gambar, $x - 1, $y);
-        $pixelTengah = imagecolorat($gambar, $x, $y);
-        $pixelKanan = imagecolorat($gambar, $x + 1, $y);
+        // Mendapatkan ukuran gambar
+        $lebar = imagesx($gambar);
+        $tinggi = imagesy($gambar);
 
-        // Mendapatkan komponen warna RGB masing-masing piksel
-        $warnaKiri = imagecolorsforindex($gambar, $pixelKiri);
-        $warnaTengah = imagecolorsforindex($gambar, $pixelTengah);
-        $warnaKanan = imagecolorsforindex($gambar, $pixelKanan);
+        // Membuat gambar baru untuk hasil deteksi tepi
+        $gambarTepi = imagecreatetruecolor($lebar, $tinggi);
 
-        // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
-        $gradienMerah = $warnaKiri['red'] + $warnaKanan['red'] - 2 * $warnaTengah['red'];
-        $gradienHijau = $warnaKiri['green'] + $warnaKanan['green'] - 2 * $warnaTengah['green'];
-        $gradienBiru = $warnaKiri['blue'] + $warnaKanan['blue'] - 2 * $warnaTengah['blue'];
+        // Loop melalui setiap piksel
+        for ($x = 1; $x < $lebar - 1; $x++) {
+            for ($y = 1; $y < $tinggi - 1; $y++) {
+                // Mendapatkan nilai intensitas piksel di sekitar piksel
+                $pixelKiri = imagecolorat($gambar, $x - 1, $y);
+                $pixelTengah = imagecolorat($gambar, $x, $y);
+                $pixelKanan = imagecolorat($gambar, $x + 1, $y);
 
-        // Menghitung gradien akhir
-        $gradien = sqrt($gradienMerah**2 + $gradienHijau**2 + $gradienBiru**2);
+                // Mendapatkan komponen warna RGB masing-masing piksel
+                $warnaKiri = imagecolorsforindex($gambar, $pixelKiri);
+                $warnaTengah = imagecolorsforindex($gambar, $pixelTengah);
+                $warnaKanan = imagecolorsforindex($gambar, $pixelKanan);
 
-        // Memastikan gradien berada dalam rentang yang valid
-        $gradien = max(0, min(255, $gradien));
+                // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
+                $gradienMerah = $warnaKiri['red'] + $warnaKanan['red'] - 2 * $warnaTengah['red'];
+                $gradienHijau = $warnaKiri['green'] + $warnaKanan['green'] - 2 * $warnaTengah['green'];
+                $gradienBiru = $warnaKiri['blue'] + $warnaKanan['blue'] - 2 * $warnaTengah['blue'];
 
-        // Menetapkan warna piksel ke gambar deteksi tepi
-        $warnaTepi = imagecolorallocate($gambarTepi, (int) $gradien, (int) $gradien, (int) $gradien);
-        imagesetpixel($gambarTepi, $x, $y, $warnaTepi);
+                // Menghitung gradien akhir
+                $gradien = sqrt($gradienMerah**2 + $gradienHijau**2 + $gradienBiru**2);
+
+                // Memastikan gradien berada dalam rentang yang valid
+                $gradien = max(0, min(255, $gradien));
+
+                // Menetapkan warna piksel ke gambar deteksi tepi
+                $warnaTepi = imagecolorallocate($gambarTepi, (int) $gradien, (int) $gradien, (int) $gradien);
+                imagesetpixel($gambarTepi, $x, $y, $warnaTepi);
+
+                // Mengubah gambar output menjadi matriks
+                $nilaiPiksel = $gradien > 1 ? 1 : 0;
+
+                // Menyimpan nilai piksel ke file txt
+                file_put_contents('output_matriks.txt', $nilaiPiksel, FILE_APPEND);
+            }
+            // Tambahkan baris baru setelah setiap baris piksel
+            file_put_contents('output_matriks.txt', PHP_EOL, FILE_APPEND);
+        }
+
+        // Menyimpan gambar hasil deteksi tepi
+        $output_file = 'output_tepi_laplace.jpg';
+        imagejpeg($gambarTepi, $output_file);
+
+        // Membebaskan memori
+        imagedestroy($gambar);
+        imagedestroy($gambarTepi);
+
+        echo "Deteksi tepi dengan operator Laplace berhasil, hasil disimpan sebagai '$output_file' dan matriks disimpan dalam 'output_matriks.txt'.";
+    } else {
+        echo "Gagal mengunggah file atau memindahkan file ke folder tujuan.";
     }
 }
-
-// Menyimpan gambar hasil deteksi tepi
-imagejpeg($gambarTepi, 'output_tepi_laplace.jpg');
-
-// Membebaskan memori
-imagedestroy($gambar);
-imagedestroy($gambarTepi);
-
-echo "Deteksi tepi dengan operator Laplace berhasil, hasil disimpan sebagai 'output_tepi_laplace.jpg'.";
 ?>
 
 <!DOCTYPE html>
@@ -58,11 +82,25 @@ echo "Deteksi tepi dengan operator Laplace berhasil, hasil disimpan sebagai 'out
 </head>
 <body>
 
-<h2>Gambar Input</h2>
-<img src="input.jpg" alt="Gambar Input" width="300" height="200">
+<h2>Form Unggah Gambar</h2>
+<form action="" method="post" enctype="multipart/form-data">
+    <input type="file" name="input_image" accept=".jpg, .jpeg" required>
+    <input type="submit" value="Unggah dan Deteksi Tepi">
+</form>
 
-<h2>Gambar Output (Deteksi Tepi dengan Operator Laplace)</h2>
-<img src="output_tepi_laplace.jpg" alt="Gambar Output" width="300" height="200">
+<?php
+if (isset($file_name)) {
+    echo "<h2>Gambar Input</h2>";
+    echo "<img src='$upload_folder$file_name' alt='Gambar Input' width='300' height='200'>";
+}
+?>
+
+<?php
+if (isset($output_file)) {
+    echo "<h2>Gambar Output (Deteksi Tepi dengan Operator Laplace)</h2>";
+    echo "<img src='$output_file' alt='Gambar Output' width='300' height='200'>";
+}
+?>
 
 </body>
 </html>
