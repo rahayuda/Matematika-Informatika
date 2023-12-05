@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deteksi Tepi dengan Operator Laplace</title>
+</head>
+<body>
+
+<script>
+    // Buat elemen gambar
+    var img = new Image();
+    img.src = 'input.jpg';
+
+    // Jalankan fungsi setelah gambar dimuat
+    img.onload = function () {
+        // Dapatkan ukuran gambar
+        var lebar = img.width;
+        var tinggi = img.height;
+
+        // Buat elemen canvas untuk hasil deteksi tepi
+        var canvasTepi = document.createElement('canvas');
+        canvasTepi.width = lebar;
+        canvasTepi.height = tinggi;
+        var ctxTepi = canvasTepi.getContext('2d');
+
+        // Gambar gambar input ke canvas
+        ctxTepi.drawImage(img, 0, 0, lebar, tinggi);
+
+        // Loop melalui setiap piksel
+        for (var x = 1; x < lebar - 1; x++) {
+            for (var y = 1; y < tinggi - 1; y++) {
+                // Dapatkan nilai intensitas piksel di sekitar piksel
+                var pixelKiri = ctxTepi.getImageData(x - 1, y, 1, 1).data;
+                var pixelTengah = ctxTepi.getImageData(x, y, 1, 1).data;
+                var pixelKanan = ctxTepi.getImageData(x + 1, y, 1, 1).data;
+
+                // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
+                var gradienMerah = pixelKiri[0] + pixelKanan[0] - 2 * pixelTengah[0];
+                var gradienHijau = pixelKiri[1] + pixelKanan[1] - 2 * pixelTengah[1];
+                var gradienBiru = pixelKiri[2] + pixelKanan[2] - 2 * pixelTengah[2];
+
+                // Menghitung gradien akhir
+                var gradien = Math.sqrt(gradienMerah**2 + gradienHijau**2 + gradienBiru**2);
+
+                // Memastikan gradien berada dalam rentang yang valid
+                gradien = Math.min(255, gradien);
+
+                // Atur warna piksel ke canvas deteksi tepi
+                ctxTepi.fillStyle = 'rgb(' + gradien + ',' + gradien + ',' + gradien + ')';
+                ctxTepi.fillRect(x, y, 1, 1);
+            }
+        }
+
+        // Tampilkan gambar input
+        document.body.appendChild(document.createElement('h2')).textContent = 'Gambar Input';
+        document.body.appendChild(img);
+
+        // Tampilkan gambar output
+        document.body.appendChild(document.createElement('h2')).textContent = 'Gambar Output (Deteksi Tepi dengan Operator Laplace)';
+        document.body.appendChild(canvasTepi);
+
+        // Simpan gambar hasil deteksi tepi
+        var outputTepi = canvasTepi.toDataURL('image/jpeg');
+        var a = document.createElement('a');
+        a.href = outputTepi;
+        a.download = 'output_tepi_laplace.jpg';
+        a.textContent = 'Download Gambar Output';
+        document.body.appendChild(a);
+    };
+</script>
+
+</body>
+</html>
