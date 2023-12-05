@@ -56,34 +56,39 @@
                 // Tentukan nilai ambang untuk gradien (sesuaikan jika diperlukan)
                 var threshold = 100;
 
-                // Loop melalui setiap piksel
-                for (var x = 1; x < img.width - 1; x++) {
-                    for (var y = 1; y < img.height - 1; y++) {
-                        // Dapatkan nilai intensitas piksel di sekitar piksel
-                        var pixelKiri = ctxInput.getImageData(x - 1, y, 1, 1).data;
-                        var pixelTengah = ctxInput.getImageData(x, y, 1, 1).data;
-                        var pixelKanan = ctxInput.getImageData(x + 1, y, 1, 1).data;
+// Loop melalui setiap piksel
+for (var x = 1; x < img.width - 1; x++) {
+    for (var y = 1; y < img.height - 1; y++) {
+        // Dapatkan nilai intensitas piksel di sekitar piksel
+        var pixelKiri = ctxInput.getImageData(x - 1, y, 1, 1).data;
+        var pixelTengah = ctxInput.getImageData(x, y, 1, 1).data;
+        var pixelKanan = ctxInput.getImageData(x + 1, y, 1, 1).data;
 
-                        // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
-                        var gradienMerah = pixelKiri[0] + pixelKanan[0] - 2 * pixelTengah[0];
-                        var gradienHijau = pixelKiri[1] + pixelKanan[1] - 2 * pixelTengah[1];
-                        var gradienBiru = pixelKiri[2] + pixelKanan[2] - 2 * pixelTengah[2];
+        // Menghitung gradien dengan operator Laplace menggunakan selisih pusat untuk setiap saluran warna
+        var gradienMerah = pixelKiri[0] + pixelKanan[0] - 2 * pixelTengah[0];
+        var gradienHijau = pixelKiri[1] + pixelKanan[1] - 2 * pixelTengah[1];
+        var gradienBiru = pixelKiri[2] + pixelKanan[2] - 2 * pixelTengah[2];
 
-                        // Menghitung gradien akhir
-                        var gradien = Math.sqrt(gradienMerah**2 + gradienHijau**2 + gradienBiru**2);
+        // Menghitung gradien akhir
+        var gradien = Math.sqrt(gradienMerah**2 + gradienHijau**2 + gradienBiru**2);
 
-                        // Memastikan gradien berada dalam rentang yang valid
-                        gradien = Math.min(255, gradien);
+        // Memastikan gradien berada dalam rentang yang valid
+        gradien = Math.min(255, gradien);
 
-                        // Mengurangi nilai gradien untuk menghasilkan gambar yang lebih gelap
-                        gradien = 255 - gradien;
+        // Mengurangi nilai gradien untuk menghasilkan gambar yang lebih gelap
+        gradien = 255 - gradien;
 
-                        // Atur warna piksel ke canvas deteksi tepi
-                        var warna = gradien > threshold ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
-                        ctxTepi.fillStyle = warna;
-                        ctxTepi.fillRect(x, y, 1, 1);
-                    }
-                }
+        // Sesuaikan ambang batas dan kontrast
+        var ambangBatas = 50; // Nilai ambang batas yang lebih tinggi
+        var kontrast = 2; // Nilai kontrast yang lebih tinggi
+
+        // Atur warna piksel ke canvas deteksi tepi
+        var warna = gradien > ambangBatas ? 'rgb(0, 0, 0)' : 'rgb(255, 255, 255)';
+        ctxTepi.fillStyle = warna;
+        ctxTepi.fillRect(x, y, 1, 1);
+    }
+}
+
 
                 // Tampilkan gambar input
                 document.body.appendChild(document.createElement('h2')).textContent = 'Gambar Input';
